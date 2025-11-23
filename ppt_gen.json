@@ -1,0 +1,170 @@
+{
+  "name": "My workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "b90f46af-a9c3-4558-b161-088909f0b124",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -368,
+        -16
+      ],
+      "id": "85b5dd9b-a327-4461-a5b0-befa4d1670ce",
+      "name": "Webhook",
+      "webhookId": "b90f46af-a9c3-4558-b161-088909f0b124"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Write a Python script using the python-pptx library to generate a PowerPoint presentation. The script should take the following user inputs: a presentation Title, a list of Slide Titles, and specific Theme/Font preferences. For each slide, automatically populate it with bullet points containing relevant information about that slide's specific title. The output should be a professional .pptx file styled according to the user's preferences\nhear is the prompt\n{{ $json.body.prompt }} with title font as {{ $json.body.title_font }} and body font as {{ $json.body.body_font }} and the theame is {{ $json.body.theme }}\nalways name the ppt as aippt.pptx\nthe output should only contain python code don't include any other text",
+        "options": {
+          "systemMessage": "Role: You are an expert Python Developer specialized in automation tools, specifically using the python-pptx library.\n\nObjective: Your sole purpose is to convert user specifications into a complete, runnable Python script that generates a PowerPoint presentation.\n\nInput parameters you will receive from the user:\n\nTopic/Main Title\n\nNumber of Slides\n\nTitles for Each Slide\n\nTheme Preferences (Font name, Color scheme)\n\nInstructions for Code Generation:\n\nLibrary: You must use python-pptx.\n\nContent Expansion: The script must not just create blank slides. You must write a function within the Python script that generates or selects relevant bullet-point content based on the specific title of each slide.\n\nStyling: The script must strictly implement the user's font choice and color theme (using RGB values) for all titles and body text.\n\nFormatting: Ensure the output is a single, copy-pasteable Python block.\n\nTone: Do not add conversational filler. Provide the code directly.\n\nBehavioral Constraint:\nDo not ask for clarification. If details are missing, use professional defaults (e.g., Arial font, standard blue/grey business colors) and generate the code immediately."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        -784,
+        336
+      ],
+      "id": "d6f82526-87be-4636-8d57-231e5f69ccfe",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -784,
+        496
+      ],
+      "id": "314b9d23-679d-4bfa-b971-eca63e939d7a",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "rhlxX1HTnK1oTkqz",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        240,
+        -16
+      ],
+      "id": "643bde97-61f2-4aa2-8e64-24dff67f4f05",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Write a Python script to generate a PowerPoint presentation.\n\nTopic: \"{{ $json.body.prompt }}\"\nPresented By: \"{{ $json.body.author }}\"\nNumber of Slides: {{ $json.body.slide_count }}\n\nDesign Config:\n- Title Font: \"{{ $json.body.title_font }}\"\n- Body Font: \"{{ $json.body.body_font }}\"\n- Theme: \"{{ $json.body.theme }}\" (Use internal dictionary for RGB values).\n- Filename: \"aippt.pptx\"\n\nRequirements:\n1. Define `THEME_PRESETS` dictionary for the chosen theme,include a `background` key for each theme. The background must be a very light, pastel version of the theme color (e.g., RGB(235, 245, 255) for Blue),apply this background color to every slide.\n2. Generate exactly {{ $json.body.slide_count }} slides.\n3. Slide 1 must be the Title Slide containing the Topic and \"Presented by {{ $json.body.author }}\".\n4. The remaining slides should cover key sub-topics of the main request.\n5. Use safe text handling (clear text, add run) to avoid IndexErrors.\n6. Output ONLY raw Python code.\n**CRITICAL CODING RULES (STRICTLY ENFORCED):**\n1. **NO `remove_paragraph`:** The method `tf.remove_paragraph()` DOES NOT EXIST. Never use it.\n2. **NO `runs[0]` ACCESS:** Never access `paragraph.runs[0]` directly. It causes IndexErrors.\n3. **HOW TO CLEAR TEXT:** To clear a TextFrame, you must ONLY use `text_frame.clear()`. This removes all text but leaves one empty paragraph.\n4. **MANDATORY HELPER FUNCTION:** You MUST define and use this exact function for setting text:\n   ```python\n   def set_text(paragraph, text, font_name, font_size, color_rgb, is_bold=False):\n       paragraph.clear()  # Removes all existing runs\n       run = paragraph.add_run() \n       run.text = text\n       run.font.name = font_name\n       run.font.size = Pt(font_size)\n       run.font.color.rgb = color_rgb\n       run.font.bold = is_bold",
+        "options": {
+          "systemMessage": "**Role:** Expert Python Developer for `python-pptx`.\n\n**Objective:** specific output: A complete, runnable Python script that generates a PowerPoint file named 'aippt.pptx'.\n\n**Critical Rules:**\n1. **Library:** Use `import pptx`, `from pptx.util import Pt, Inches`, `from pptx.dml.color import RGBColor`.\n2. **Safe Text Handling:** NEVER access `.runs[0]` directly. ALWAYS clear text and use `.add_run()`.\n3. **Structure:** - Slide 0: Title Slide (Layout 0).\n   - Slides 1-N: Content Slides (Layout 1).\n4. **Logic:** You must dynamically generate the list of slide titles based on the user's requested slide count. Do not hardcode a fixed list if the user asks for more/less slides.\n5. **Output:** Return ONLY raw Python code."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        -144,
+        -16
+      ],
+      "id": "643b7976-5542-4a81-b23f-2b04d585a10f",
+      "name": "AI Agent1"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -144,
+        192
+      ],
+      "id": "48c7f3f3-3f7d-4739-8cb7-2bf1fca731d6",
+      "name": "Google Gemini Chat Model1",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "rhlxX1HTnK1oTkqz",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        []
+      ]
+    },
+    "Google Gemini Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent1": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "11b60263-112b-4711-b817-fb5e24697598",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "f2c89155937616f994e4b4513b58fdfeea43bb5199a860b3b919f4d98850643b"
+  },
+  "id": "i2nVyFrdqGTGYqaO",
+  "tags": []
+}
